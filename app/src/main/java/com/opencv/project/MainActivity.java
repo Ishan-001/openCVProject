@@ -1,12 +1,16 @@
 package com.opencv.project;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
@@ -27,9 +31,10 @@ import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity  {
 
-    Button select, gray;
+    Button select, filter;
     ImageView img;
-    Bitmap grayBitmap, imageBitmap;
+    Bitmap styleBitmap, imageBitmap;
+    AlertDialog.Builder builder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,13 +52,31 @@ public class MainActivity extends AppCompatActivity  {
             }
         });
 
-        gray=findViewById(R.id.button2);
-        gray.setOnClickListener(new View.OnClickListener() {
+        filter=findViewById(R.id.button2);
+        //createDialogBuilder();
+
+        filter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                convertToGray();
+                if(imageBitmap!=null) {
+                    builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle("Choose a filter");
+                    String[] items = {"None", "Style 1", "Style 2", "Style 3", "Style 4", "Style 5", "Style 6", "Style 7", "Style 8"};
+                    builder.setItems(items, new DialogInterface.OnClickListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.O)
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            setStyle(which, imageBitmap);
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }
+                else
+                    Toast.makeText(MainActivity.this, "Select an image", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     void openGallery(){
@@ -77,9 +100,10 @@ public class MainActivity extends AppCompatActivity  {
         }
     }
 
-    void convertToGray(){
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    void setStyle(int position, Bitmap imageBitmap){
         Mat rgba=new Mat();
-        Mat grayMat=new Mat();
+        Mat styleMat=new Mat();
 
         BitmapFactory.Options options=new BitmapFactory.Options();
         options.inDither=false;
@@ -87,13 +111,34 @@ public class MainActivity extends AppCompatActivity  {
 
         int width=imageBitmap.getWidth();
         int height=imageBitmap.getHeight();
-
-        grayBitmap=Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        styleBitmap=Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 
         Utils.bitmapToMat(imageBitmap, rgba);
-        Imgproc.cvtColor(rgba, grayMat, Imgproc.COLOR_RGB2GRAY);
-        Utils.matToBitmap(grayMat, grayBitmap);
 
-        img.setImageBitmap(grayBitmap);
+        switch (position){
+            case 0: styleMat=rgba;
+                    break;
+            case 1: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2YUV);
+                break;
+            case 2: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2GRAY);
+                break;
+            case 3: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2BGR);
+                break;
+            case 4: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_BGR2XYZ);
+                break;
+            case 5: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2YCrCb);
+                break;
+            case 6: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGBA2BGRA);
+                break;
+            case 7: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2Lab);
+                break;
+            case 8: Imgproc.cvtColor(rgba, styleMat, Imgproc.COLOR_RGB2Luv);
+                break;
+
+        }
+
+        Utils.matToBitmap(styleMat, styleBitmap);
+
+        img.setImageBitmap(styleBitmap);
     }
 }
